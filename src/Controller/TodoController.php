@@ -4,18 +4,19 @@ namespace App\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\HttpFoundation\Response;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Form\FormBuilderInterface;
 
 use App\Entity\User;
 use App\Entity\Task;
-use Symfony\Component\HttpFoundation\Response;
 
 class TodoController extends AbstractController
 {
-    #[Route('/', name: 'app_todo', methods: ['GET'], defaults: ['_format' => 'json'])]
-    public function index(ManagerRegistry $doctrine): JsonResponse
+    #[Route('/', name: 'app_todo', methods: ['GET'])]
+    public function index(ManagerRegistry $doctrine): Response
     {
         $users = $doctrine->getRepository(User::class)->findAll();
         $data = [];
@@ -28,55 +29,44 @@ class TodoController extends AbstractController
                 'creation_date' => $user->getCreationDate()->format('M-d-Y'),
             ];
         }
-        return $this->json($data);
+        return $this->render('user/index.html.twig', [
+            'users' => $data,
+        ]);
     }
 
-    #[Route('/register', name: 'app_todo_register', methods: ['POST'])]
-    public function register(ManagerRegistry $doctrine, Request $request): JsonResponse
+    #[Route('/register-old', name: 'app_todo_register', methods: ['GET', 'POST'])]
+    public function register(ManagerRegistry $doctrine, Request $request): Response
     {
-        $username = $request->request->get('username');
-        $email = $request->request->get('email');
-        $password = $request->request->get('password');
-        $user = $doctrine->getRepository(User::class)->findOneBy(['email' => $email]);
-        if ($user) {
-            throw $this->createNotFoundException('User already exists');
+        $user = new User();
+        $form = $this->createFormBuilder($user)
+            ->add('username')
+            ->add('email')
+            ->add('password')
+            ->getForm();
+
+        $form->handleRequest($request);
+        if ($form->isSubmitted() && $form->isValid()) {
+            $user = $form->getData();
+            $email = $user->getEmail();
+            $username = $user->getUsername();
+            $alreadyRegisteredEmail = $doctrine->getRepository(User::class)->findOneBy(['email' => $email]) != null;
+            $alreadyRegisteredUsername = $doctrine->getRepository(User::class)->findOneBy(['username' => $username]) != null;
+            if ($alreadyRegisteredEmail || $alreadyRegisteredUsername) {
+                throw $this->createNotFoundException('User already exists');
+            }
+            $user->setCreationDate(new \DateTime());
+            $doctrine->getManager()->persist($user);
+            $doctrine->getManager()->flush();
+            return $this->redirectToRoute('app_todo_user', ['id' => $user->getId()]);
         }
-        $user = new \App\Entity\User();
-        $user->setUsername($username);
-        $user->setEmail($email);
-        $user->setPassword($password);
-        $user->setCreationDate(new \DateTime());
-        $doctrine->getManager()->persist($user);
-        $doctrine->getManager()->flush();
-        $data = [
-            'id' => $user->getId(),
-            'username' => $user->getUsername(),
-            'email' => $user->getEmail(),
-        ];
-        return $this->json($data);
+        return $this->render('user/register.html.twig', [
+            'form' => $form,
+        ]);
     }
 
-    #[Route('/login', name: 'app_todo_login', methods: ['POST'])]
-    public function login(ManagerRegistry $doctrine, Request $request): JsonResponse
+    #[Route('/login', name: 'app_todo_login', methods: ['GET', 'POST'])]
+    public function login(ManagerRegistry $doctrine, Request $request, FormBuilderInterface $builder): Response
     {
-        $email = $request->request->get('email');
-        $password = $request->request->get('password');
-        $user = $doctrine->getRepository(User::class)->findOneBy(['email' => $email]);
-        if (!$user) {
-            $user = $doctrine->getRepository(User::class)->findOneBy(['username' => $email]);
-        }
-        if (!$user) {
-            throw $this->createNotFoundException('User not found');
-        }
-        if ($user->getPassword() !== $password) {
-            throw $this->createNotFoundException('Invalid password');
-        }
-        $data = [
-            'id' => $user->getId(),
-            'username' => $user->getUsername(),
-            'email' => $user->getEmail(),
-        ];
-        return $this->json($data);
     }
 
     #[Route('/user/{id}', name: 'app_todo_user', methods: ['GET'])]
@@ -90,8 +80,44 @@ class TodoController extends AbstractController
             'id' => $user->getId(),
             'username' => $user->getUsername(),
             'email' => $user->getEmail(),
+            'password' => $user->getPassword(),
+            'creation_date' => $user->getCreationDate()->format('M-d-Y'),
         ];
         return $this->json($data);
+    }
+
+    #[Route('/user/{id}/edit', name: 'app_todo_user_edit', methods: ['GET', 'POST'])]
+    public function userEdit(ManagerRegistry $doctrine, Request $request, string $id): Response
+    {
+        $user = $doctrine->getRepository(User::class)->find($id);
+        if ($user === null) {
+            throw $this->createNotFoundException('User not found');
+        }
+        $form = $this->createFormBuilder($user)
+            ->add('username', null, ['required' => false])
+            ->add('email', null, ['required' => false])
+            ->add('password', null, ['required' => false, 'data' => ""])
+            ->getForm();
+        $form->handleRequest($request);
+        if ($form->isSubmitted() && $form->isValid()) {
+            $doctrine->getManager()->flush();
+            return $this->redirectToRoute('app_todo_user', ['id' => $user->getId(), 'edited' => true]);
+        }
+        return $this->render('user/edit.html.twig', [
+            'form' => $form,
+        ]);
+    }
+
+    #[Route('/user/{id}/delete', name: 'app_todo_user_delete', methods: ['GET', 'POST'])]
+    public function userDelete(ManagerRegistry $doctrine, string $id): Response
+    {
+        $user = $doctrine->getRepository(User::class)->find($id);
+        if ($user === null) {
+            throw $this->createNotFoundException('User not found');
+        }
+        $doctrine->getManager()->remove($user);
+        $doctrine->getManager()->flush();
+        return $this->redirectToRoute('app_todo_register', ['deleted' => true]);
     }
 
     #[Route('/user/{id}/tasks', name: 'app_todo_user_tasks', methods: ['GET'])]
