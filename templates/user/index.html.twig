@@ -1,0 +1,28 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}List of all users{% endblock %}
+
+{% block body %}
+    <h1 class="text-3xl mb-10">List of all users</h1>
+    <ul>
+        <div class="grid grid-cols-4 gap-4 text-slate-300">
+            {% for user in users %}
+                <div class="mx-20 bg-neutral-600 rounded-3xl text-xl">
+                    <div class="col-span-1 pl-5">
+                        <li>{{ user.username }}</li>
+                    </div>
+                    <div class="col-span-1 pl-5">
+                        <li>{{ user.email }}</li>
+                    </div>
+                    <div class="col-span-1 pl-5">
+                        <li>{{ user.creation_date }}</li>
+                    </div>
+                    <div class="col-span-1 pl-5">
+                        <a href="{{ path('app_todo_user_edit', {'id': user.id}) }}" class="mr-5">Edit</a>
+                        <a href="{{ path('app_todo_user_delete', {'id': user.id}) }}" class="ml-5">Delete</a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </ul>
+{% endblock %}
