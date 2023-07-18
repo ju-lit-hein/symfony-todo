@@ -9,6 +9,7 @@ use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Form\FormBuilderInterface;
+use App\Form\UserDeletionConfirmFormType;
 
 use App\Entity\User;
 use App\Entity\Task;
@@ -34,7 +35,7 @@ class TodoController extends AbstractController
         ]);
     }
 
-    #[Route('/register-old', name: 'app_todo_register', methods: ['GET', 'POST'])]
+    #[Route('/register-old', name: 'app_todo_register_old', methods: ['GET', 'POST'])]
     public function register(ManagerRegistry $doctrine, Request $request): Response
     {
         $user = new User();
@@ -64,13 +65,14 @@ class TodoController extends AbstractController
         ]);
     }
 
-    #[Route('/login', name: 'app_todo_login', methods: ['GET', 'POST'])]
+    #[Route('/login-old', name: 'app_todo_login', methods: ['GET', 'POST'])]
     public function login(ManagerRegistry $doctrine, Request $request, FormBuilderInterface $builder): Response
     {
+        return $this->render('base.html.twig', []);
     }
 
     #[Route('/user/{id}', name: 'app_todo_user', methods: ['GET'])]
-    public function userById(ManagerRegistry $doctrine, string $id): JsonResponse
+    public function userById(ManagerRegistry $doctrine, string $id): Response
     {
         $user = $doctrine->getRepository(User::class)->find($id);
         if ($user === null) {
@@ -83,7 +85,9 @@ class TodoController extends AbstractController
             'password' => $user->getPassword(),
             'creation_date' => $user->getCreationDate()->format('M-d-Y'),
         ];
-        return $this->json($data);
+        return $this->render('user/home.html.twig', [
+            'user' => $data,
+        ]);
     }
 
     #[Route('/user/{id}/edit', name: 'app_todo_user_edit', methods: ['GET', 'POST'])]
@@ -109,15 +113,22 @@ class TodoController extends AbstractController
     }
 
     #[Route('/user/{id}/delete', name: 'app_todo_user_delete', methods: ['GET', 'POST'])]
-    public function userDelete(ManagerRegistry $doctrine, string $id): Response
+    public function userDelete(Request $request, ManagerRegistry $doctrine, string $id): Response
     {
         $user = $doctrine->getRepository(User::class)->find($id);
         if ($user === null) {
             throw $this->createNotFoundException('User not found');
         }
-        $doctrine->getManager()->remove($user);
-        $doctrine->getManager()->flush();
-        return $this->redirectToRoute('app_todo_register', ['deleted' => true]);
+        $form = $this->createForm(UserDeletionConfirmFormType::class);
+        $form->handleRequest($request);
+        if ($form->isSubmitted() && $form->isValid()) {
+            $doctrine->getManager()->remove($user);
+            $doctrine->getManager()->flush();
+            return $this->redirectToRoute('app_register', ['deleted' => true]);
+        }
+        return $this->render('user/delete.html.twig', [
+            'userDeletionForm' => $form,
+        ]);
     }
 
     #[Route('/user/{id}/tasks', name: 'app_todo_user_tasks', methods: ['GET'])]

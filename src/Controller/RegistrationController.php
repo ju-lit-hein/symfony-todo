@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\User;
 use App\Form\RegistrationFormType;
+use App\Form\LoginFormType;
 use App\Repository\UserRepository;
 use App\Security\EmailVerifier;
 use Doctrine\ORM\EntityManagerInterface;
@@ -29,7 +30,13 @@ class RegistrationController extends AbstractController
     public function register(Request $request, UserPasswordHasherInterface $userPasswordHasher, EntityManagerInterface $entityManager): Response
     {
         $user = new User();
-        $form = $this->createForm(RegistrationFormType::class, $user);
+        $isUserJustDeleted = $request->query->get('deleted') == 1;
+        if ($isUserJustDeleted) {
+            $this->addFlash('delete-user-success', 'User deleted successfully');
+        }
+        $form = $this->createForm(RegistrationFormType::class, $user, [
+            'attr' => ['class' => 'space-y-6'],
+        ]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
@@ -40,21 +47,22 @@ class RegistrationController extends AbstractController
                     $form->get('plainPassword')->getData()
                 )
             );
+            $user->setCreationDate(new \DateTime());
 
             $entityManager->persist($user);
             $entityManager->flush();
 
             // generate a signed url and email it to the user
-            $this->emailVerifier->sendEmailConfirmation('app_verify_email', $user,
-                (new TemplatedEmail())
-                    ->from(new Address('no-reply@todo.etib.tech', 'no-reply-etib-corp-todo-app'))
-                    ->to($user->getEmail())
-                    ->subject('Please Confirm your Email')
-                    ->htmlTemplate('registration/confirmation_email.html.twig')
-            );
+            // $this->emailVerifier->sendEmailConfirmation('app_verify_email', $user,
+            //     (new TemplatedEmail())
+            //         ->from(new Address('no-reply@todo.etib.tech', 'no-reply-etib-corp-todo-app'))
+            //         ->to($user->getEmail())
+            //         ->subject('Please Confirm your Email')
+            //         ->htmlTemplate('registration/confirmation_email.html.twig')
+            // );
             // do anything else you need here, like send an email
 
-            return $this->redirectToRoute('app_todo_user');
+            return $this->redirectToRoute('app_todo_user', ['id' => $user->getId()]);
         }
 
         return $this->render('registration/register.html.twig', [
@@ -62,7 +70,7 @@ class RegistrationController extends AbstractController
         ]);
     }
 
-    #[Route('/verify/email', name: 'app_verify_email')]
+    /*#[Route('/verify/email', name: 'app_verify_email')]
     public function verifyUserEmail(Request $request, UserRepository $userRepository): Response
     {
         $id = $request->query->get('id');
@@ -90,5 +98,46 @@ class RegistrationController extends AbstractController
         $this->addFlash('success', 'Your email address has been verified.');
 
         return $this->redirectToRoute('app_register');
-    }
+    }*/
+
+    /*#[Route('/login', name: 'app_login')]
+    public function login(Request $request, UserPasswordHasherInterface $userPasswordHasher, EntityManagerInterface $entityManager): Response
+    {
+        $user = new User();
+        $form = $this->createForm(LoginFormType::class, $user, [
+            'attr' => ['class' => 'space-y-6'],
+        ]);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            // encode the plain password
+            $user->setPassword(
+                $userPasswordHasher->hashPassword(
+                    $user,
+                    $form->get('plainPassword')->getData()
+                )
+            );
+            $userTmp = $entityManager->getRepository(User::class)->findOneBy(['username' => $user->getUsername(), 'password' => $user->getPassword()]);
+            print($user->getPassword());
+            if ($userTmp == null) {
+                throw $this->createNotFoundException('Invalid credentials');
+            }
+
+            // generate a signed url and email it to the user
+            // $this->emailVerifier->sendEmailConfirmation('app_verify_email', $user,
+            //     (new TemplatedEmail())
+            //         ->from(new Address('no-reply@todo.etib.tech', 'no-reply-etib-corp-todo-app'))
+            //         ->to($user->getEmail())
+            //         ->subject('Please Confirm your Email')
+            //         ->htmlTemplate('registration/confirmation_email.html.twig')
+            // );
+            // do anything else you need here, like send an email
+
+            return $this->redirectToRoute('app_todo_user', ['id' => $userTmp->getId()]);
+        }
+
+        return $this->render('registration/login.html.twig', [
+            'loginForm' => $form,
+        ]);
+    }*/
 }
