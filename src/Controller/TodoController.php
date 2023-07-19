@@ -8,67 +8,43 @@ use Symfony\Component\HttpFoundation\Response;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\Form\FormBuilderInterface;
 use App\Form\UserDeletionConfirmFormType;
+use App\Form\NewTaskFormType;
 
 use App\Entity\User;
 use App\Entity\Task;
 
 class TodoController extends AbstractController
 {
-    #[Route('/', name: 'app_todo', methods: ['GET'])]
-    public function index(ManagerRegistry $doctrine): Response
+    #[Route('/', name: 'app_todo')]
+    public function index(ManagerRegistry $doctrine, Request $request): Response
     {
         $users = $doctrine->getRepository(User::class)->findAll();
         $data = [];
         foreach ($users as $user) {
+            $tasks = $doctrine->getRepository(Task::class)->findBy(['user' => $user]);
             $data[] = [
                 'id' => $user->getId(),
                 'username' => $user->getUsername(),
                 'email' => $user->getEmail(),
                 'password' => $user->getPassword(),
                 'creation_date' => $user->getCreationDate()->format('M-d-Y'),
+                'tasks' => [],
             ];
+            foreach ($tasks as $task) {
+                $data[count($data) - 1]['tasks'][] = [
+                    'id' => $task->getId(),
+                    'name' => $task->getName(),
+                    'description' => $task->getDescription(),
+                    'creation_date' => $task->getCreationDate()->format('M-d-Y'),
+                    'due_date' => $task->getDueDate()->format('M-d-Y'),
+                    'status' => $task->getStatus(),
+                ];
+            }
         }
         return $this->render('user/index.html.twig', [
             'users' => $data,
         ]);
-    }
-
-    #[Route('/register-old', name: 'app_todo_register_old', methods: ['GET', 'POST'])]
-    public function register(ManagerRegistry $doctrine, Request $request): Response
-    {
-        $user = new User();
-        $form = $this->createFormBuilder($user)
-            ->add('username')
-            ->add('email')
-            ->add('password')
-            ->getForm();
-
-        $form->handleRequest($request);
-        if ($form->isSubmitted() && $form->isValid()) {
-            $user = $form->getData();
-            $email = $user->getEmail();
-            $username = $user->getUsername();
-            $alreadyRegisteredEmail = $doctrine->getRepository(User::class)->findOneBy(['email' => $email]) != null;
-            $alreadyRegisteredUsername = $doctrine->getRepository(User::class)->findOneBy(['username' => $username]) != null;
-            if ($alreadyRegisteredEmail || $alreadyRegisteredUsername) {
-                throw $this->createNotFoundException('User already exists');
-            }
-            $user->setCreationDate(new \DateTime());
-            $doctrine->getManager()->persist($user);
-            $doctrine->getManager()->flush();
-            return $this->redirectToRoute('app_todo_user', ['id' => $user->getId()]);
-        }
-        return $this->render('user/register.html.twig', [
-            'form' => $form,
-        ]);
-    }
-
-    #[Route('/login-old', name: 'app_todo_login', methods: ['GET', 'POST'])]
-    public function login(ManagerRegistry $doctrine, Request $request, FormBuilderInterface $builder): Response
-    {
-        return $this->render('base.html.twig', []);
     }
 
     #[Route('/user/{id}', name: 'app_todo_user', methods: ['GET'])]
@@ -172,34 +148,37 @@ class TodoController extends AbstractController
         return $this->json($data);
     }
 
-    #[Route('/user/{id}/new', name: 'app_todo_user_task_create', methods: ['POST'])]
-    public function userTaskCreate(ManagerRegistry $doctrine, Request $request, string $id): JsonResponse
+    #[Route('/tasks/new', name: 'app_todo_user_task_create')]
+    public function userTaskCreate(ManagerRegistry $doctrine, Request $request): Response
     {
+        $id = $request->query->get('id');
         $user = $doctrine->getRepository(User::class)->find($id);
         if ($user === null) {
-            throw $this->createNotFoundException('User not found');
+            throw $this->createNotFoundException('User does not exist');
         }
-        $name = $request->request->get('name');
-        $description = $request->request->get('description');
-        $due_date = $request->request->get('due_date');
-        $task = new \App\Entity\Task();
-        $task->setName($name);
-        $task->setDescription($description);
-        $task->setCreationDate(new \DateTime());
-        $task->setDueDate(new \DateTime($due_date));
-        $task->setStatus('not started');
-        $task->setUser($user);
-        $doctrine->getManager()->persist($task);
-        $doctrine->getManager()->flush();
-        $data = [
-            'id' => $task->getId(),
-            'name' => $task->getName(),
-            'description' => $task->getDescription(),
-            'creation_date' => $task->getCreationDate()->format('Y-m-d H:i:s'),
-            'due_date' => $task->getDueDate()->format('Y-m-d H:i:s'),
-            'status' => $task->getStatus(),
-        ];
-        return $this->json($data);
+        $form = $this->createForm(NewTaskFormType::class);
+        $form->handleRequest($request);
+        if ($form->isSubmitted() && $form->isValid()) {
+            $name = $form->get('name')->getData();
+            $description = $form->get('description')->getData();
+            $due_date = $form->get('dueDate')->getData();
+            $status = $form->get('status')->getData();
+            $task = new \App\Entity\Task();
+            $task->setName($name);
+            $task->setDescription($description);
+            $task->setCreationDate(new \DateTime());
+            $task->setDueDate($due_date);
+            $task->setStatus($status);
+            $task->setUser($user);
+            $doctrine->getManager()->persist($task);
+            $doctrine->getManager()->flush();
+            $this->addFlash('success', 'Task created successfully');
+            return $this->redirectToRoute('app_todo_user_task_create', ['id' => $id]);
+        }
+
+        return $this->render('task/new.html.twig', [
+            'form' => $form->createView(),
+        ]);
     }
 
     #[Route('/tasks', name: 'app_todo_tasks', methods: ['GET'])]
@@ -236,5 +215,32 @@ class TodoController extends AbstractController
             'status' => $task->getStatus(),
         ];
         return $this->json($data);
+    }
+
+    #[Route('/task/{id}/edit', name: 'app_todo_task_edit')]
+    public function taskEdit(ManagerRegistry $doctrine, string $id, Request $request)
+    {
+        $task = $doctrine->getRepository(Task::class)->find($id);
+        if ($task === null) {
+            throw $this->createNotFoundException('Task not found');
+        }
+        $status = $request->query->get('status');
+        $from = $request->query->get('from');
+        $task->setStatus($status);
+        $doctrine->getManager()->flush();
+        return $this->redirectToRoute($from);
+    }
+
+    #[Route('/task/{id}/delete', name: 'app_todo_task_delete')]
+    public function taskDelete(ManagerRegistry $doctrine, string $id, Request $request)
+    {
+        $task = $doctrine->getRepository(Task::class)->find($id);
+        if ($task === null) {
+            throw $this->createNotFoundException('Task not found');
+        }
+        $from = $request->query->get('from');
+        $doctrine->getManager()->remove($task);
+        $doctrine->getManager()->flush();
+        return $this->redirectToRoute($from);
     }
 }
