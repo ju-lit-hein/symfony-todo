@@ -100,7 +100,7 @@ class RegistrationController extends AbstractController
         return $this->redirectToRoute('app_register');
     }*/
 
-    /*#[Route('/login', name: 'app_login')]
+    #[Route('/login', name: 'app_login')]
     public function login(Request $request, UserPasswordHasherInterface $userPasswordHasher, EntityManagerInterface $entityManager): Response
     {
         $user = new User();
@@ -117,8 +117,7 @@ class RegistrationController extends AbstractController
                     $form->get('plainPassword')->getData()
                 )
             );
-            $userTmp = $entityManager->getRepository(User::class)->findOneBy(['username' => $user->getUsername(), 'password' => $user->getPassword()]);
-            print($user->getPassword());
+            $userTmp = $entityManager->getRepository(User::class)->findOneBy(['username' => $user->getUsername()]);
             if ($userTmp == null) {
                 throw $this->createNotFoundException('Invalid credentials');
             }
@@ -139,5 +138,5 @@ class RegistrationController extends AbstractController
         return $this->render('registration/login.html.twig', [
             'loginForm' => $form,
         ]);
-    }*/
+    }
 }
