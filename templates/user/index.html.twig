@@ -3,7 +3,64 @@
 {% block title %}Planning of users{% endblock %}
 
 {% block body %}
-    <ul class="my-10">
+    {% for new in app.flashes('new-task') %}
+        <section class="h-screen w-screen flex items-stretch bg-black absolute z-10 xl:bg-opacity-60" id="alert">
+            <script>
+                document.getElementById("body").classList.add("overflow-hidden");
+            </script>
+            <div class="self-center mx-auto max-w-screen-xl px-4 py-16 sm:px-6 lg:px-8">
+                <button class="translate-y-7 text-red-600 transition hover:text-gray-600" onclick="document.getElementById('alert').remove();document.getElementById('body').classList.remove('overflow-hidden');">
+                    <span class="sr-only">Dismiss popup</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+                <div class="grid grid-cols-1 gap-x-16 gap-y-8 lg:grid-cols-5">
+                    <div class="rounded-lg bg-gray-800 p-8 shadow-lg lg:col-span-3 lg:p-12">
+                        {{ form_start(form, {
+                            'attr': {
+                                'class': 'space-y-4'
+                            }
+                        }) }}
+                            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                <div>
+                                    {{ form_row(form.name) }}
+                                </div>
+                                <div>
+                                {{ form_row(form.dueDate) }}
+                                </div>
+                            </div>
+                            <div>
+                                {{ form_row(form.description) }}
+                            </div>
+                            <div class="grid grid-cols-1 gap-4 text-center sm:grid-cols-3">
+                                {% for radio in form.status %}
+                                    <div>
+                                        {{ form_widget(radio, {
+                                            atrr: {
+                                                'class': 'peer sr-only',
+                                                'tabindex': '-1',
+                                                'name': 'status'
+                                            }
+                                        }) }}
+                                        <label for="{{ radio.vars.id }}" class="block w-full bg-white rounded-lg border border-gray-200 p-3 text-gray-600 cursor-pointer hover:border-black peer-checked:border-black peer-checked:bg-black peer-checked:text-white" tabindex="0">
+                                            <span class="text-sm"> {{ radio.vars.label}} </span>
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <div class="mt-4">
+                                <button type="submit" class="inline-block w-full rounded-lg bg-green-400 px-5 py-3 font-medium text-black sm:w-auto">
+                                    Create task
+                                </button>
+                            </div>
+                        {{ form_end(form) }}
+                    </div>
+                </div>
+            </div>
+        </section>
+    {% endfor %}
+    <ul class="my-10 relative z-0">
         <div class="px-6 grid xl:grid-cols-4 gap-4 text-slate-300 md:grid-cols-3 sm:grid-cols-2">
             {% for user in users %}
                 <article class="rounded-xl border border-gray-700 bg-gray-800 p-4">
@@ -16,13 +73,12 @@
                             />
                         </a>
                         <div>
-                            <a href="/user/{{ user.id }}" class="text-lg font-medium text-white hover:text-pink-600">{{ user.username }}</a>
+                            <a href="/user/{{ user.id }}" class="text-lg font-medium text-white hover:text-indigo-600">{{ user.username }}</a>
                             <div class="flow-root">
-                                <ul class="-m-1 flex flex-wrap">
+                                <ul class="-m-1 flex grid grid-cols-1">
                                     <li class="p-1 leading-none">
-                                        <a href="mailto:{{ user.email }}" class="text-xs font-medium text-gray-300 hover:text-pink-600">{{ user.email }}</a>
+                                        <a href="mailto:{{ user.email }}" class="text-xs font-medium text-gray-300 hover:text-indigo-600">{{ user.email }}</a>
                                     </li>
-
                                     <li class="p-1 leading-none">
                                         <p class="text-xs font-medium text-gray-300"> User created the: {{ user.creation_date }} </p>
                                     </li>
@@ -41,9 +97,9 @@
                             {% else %}
                                 {% set color = 'border-gray-700' %}
                             {% endif %}
-                            <li class="h-50 rounded-lg border {{ color }} p-4 hover:border-pink-600 group grid grid-cols-2">
+                            <li class="h-50 rounded-lg border {{ color }} p-4 hover:border-indigo-600 group grid grid-cols-2">
                                 <a href="/task/{{ task.id }}" class="block ">
-                                    <strong class="font-medium text-white group-hover:text-pink-600">{{ task.name}}</strong>
+                                    <strong class="font-medium text-white group-hover:text-indigo-600">{{ task.name }}</strong>
                                     <p class="mt-1 text-xs font-medium text-gray-300 truncate w-1/2">{{ task.description }}</p>
                                     <p class="mt-1 text-xs font-medium text-gray-300"> Deadline: {{ task.due_date }}</p>
                                     <p class="mt-1 text-xs font-medium text-gray-300"> Status: {{ task.status }}</p>
@@ -64,14 +120,13 @@
                                     <label for="green" class="block lg:h-10 lg:w-10 m-3 cursor-pointer rounded-full bg-green-600 shadow-sm h-7 w-7" onclick="window.location.href='/task/{{ task.id }}/edit?status=Completed&from=app_todo';">
                                         <span class="sr-only">Completed</span>
                                     </label>
-                                    
                                 </div>
                             </li>
                         {% endfor %}
                         <li>
-                            <a href="/tasks/new?id={{ user.id }}" class="block h-50 rounded-lg border hover:border-pink-600 p-4 border-gray-700 group">
-                                <strong class="font-medium text-white group-hover:text-pink-600">Add a new task</strong>
-                                <p class="mt-1 text-xs font-medium text-gray-300 group-hover:text-pink-600">Create a new task for this user</p>
+                            <a href="/?new=1&id={{ user.id }}" class="block h-50 rounded-lg border hover:border-indigo-600 p-4 border-gray-700 group">
+                                <strong class="font-medium text-white group-hover:text-indigo-600">Add a new task</strong>
+                                <p class="mt-1 text-xs font-medium text-gray-300 group-hover:text-indigo-600">Create a new task for this user</p>
                             </a>
                         </li>
                     </ul>

@@ -40,10 +40,10 @@
             </div>
         </div>
     {% endfor %}
-    <section class="bg-gray-100">
-        <div class="mx-auto max-w-screen-xl px-4 py-16 sm:px-6 lg:px-8">
+    <section class="h-screen flex items-stretch bg-black">
+        <div class="self-center mx-auto max-w-screen-xl px-4 py-16 sm:px-6 lg:px-8">
             <div class="grid grid-cols-1 gap-x-16 gap-y-8 lg:grid-cols-5">
-                <div class="rounded-lg bg-white p-8 shadow-lg lg:col-span-3 lg:p-12">
+                <div class="rounded-lg bg-gray-800 p-8 shadow-lg lg:col-span-3 lg:p-12">
                     {{ form_start(form, {
                         'attr': {
                             'class': 'space-y-4'
@@ -70,14 +70,14 @@
                                             'name': 'status'
                                         }
                                     }) }}
-                                    <label for="{{ radio.vars.id }}" class="block w-full rounded-lg border border-gray-200 p-3 text-gray-600 hover:border-black peer-checked:border-black peer-checked:bg-black peer-checked:text-white" tabindex="0">
+                                    <label for="{{ radio.vars.id }}" class="block w-full bg-white rounded-lg border border-gray-200 p-3 text-gray-600 cursor-pointer hover:border-black peer-checked:border-black peer-checked:bg-black peer-checked:text-white" tabindex="0">
                                         <span class="text-sm"> {{ radio.vars.label}} </span>
                                     </label>
                                 </div>
                             {% endfor %}
                         </div>
                         <div class="mt-4">
-                            <button type="submit" class="inline-block w-full rounded-lg bg-black px-5 py-3 font-medium text-white sm:w-auto">
+                            <button type="submit" class="inline-block w-full rounded-lg bg-green-400 px-5 py-3 font-medium text-black sm:w-auto">
                                 Create task
                             </button>
                         </div>
