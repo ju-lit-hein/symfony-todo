@@ -21,7 +21,7 @@ class RegistrationFormType extends AbstractType
             ->add('email', EmailType::class, [
                 'label' => 'Email Address',
                 'label_attr' => [
-                    'class' => 'block text-sm font-medium leading-6 text-gray-900'
+                    'class' => 'block text-sm font-medium leading-6 text-white'
                 ],
                 'attr' => [
                     'class' => 'block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6'
@@ -30,7 +30,7 @@ class RegistrationFormType extends AbstractType
             ->add('username', null, [
                 'label' => 'Username',
                 'label_attr' => [
-                    'class' => 'block text-sm font-medium leading-6 text-gray-900'
+                    'class' => 'block text-sm font-medium leading-6 text-white'
                 ],
                 'attr' => [
                     'class' => 'block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6'
@@ -38,6 +38,9 @@ class RegistrationFormType extends AbstractType
             ])
             ->add('agreeTerms', CheckboxType::class, [
                 'mapped' => false,
+                'label_attr' => [
+                    'class' => 'text-sm font-medium leading-6 text-white'
+                ],
                 'constraints' => [
                     new IsTrue([
                         'message' => 'You should agree to our terms.',
@@ -49,7 +52,7 @@ class RegistrationFormType extends AbstractType
                 // this is read and encoded in the controller
                 'mapped' => false,
                 'label' => 'Password',
-                'label_attr' => ['class' => 'block text-sm font-medium leading-6 text-gray-900'],
+                'label_attr' => ['class' => 'block text-sm font-medium leading-6 text-white'],
                 'attr' => ['autocomplete' => 'new-password', 'class' => 'block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6'],
                 'constraints' => [
                     new NotBlank([

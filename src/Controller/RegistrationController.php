@@ -27,8 +27,14 @@ class RegistrationController extends AbstractController
     }
 
     #[Route('/register', name: 'app_register')]
-    public function register(Request $request, UserPasswordHasherInterface $userPasswordHasher, EntityManagerInterface $entityManager): Response
+    public function register(Request $request, EntityManagerInterface $entityManager): Response
     {
+        if (isset($_COOKIE['loginToken'])) {
+            $user = $entityManager->getRepository(User::class)->findOneBy(['password' => $_COOKIE['loginToken']]);
+            if ($user != null) {
+                return $this->redirectToRoute('app_todo');
+            }
+        }
         $user = new User();
         $isUserJustDeleted = $request->query->get('deleted') == 1;
         if ($isUserJustDeleted) {
@@ -40,13 +46,7 @@ class RegistrationController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // encode the plain password
-            $user->setPassword(
-                $userPasswordHasher->hashPassword(
-                    $user,
-                    $form->get('plainPassword')->getData()
-                )
-            );
+            $user->setPassword(hash('sha256', $form->get('plainPassword')->getData()));
             $user->setCreationDate(new \DateTime());
 
             $entityManager->persist($user);
@@ -61,8 +61,9 @@ class RegistrationController extends AbstractController
             //         ->htmlTemplate('registration/confirmation_email.html.twig')
             // );
             // do anything else you need here, like send an email
+            setcookie('loginToken', $user->getPassword(), time() + (86400 * 30), '/');
 
-            return $this->redirectToRoute('app_todo_user', ['id' => $user->getId()]);
+            return $this->redirectToRoute('app_todo');
         }
 
         return $this->render('registration/register.html.twig', [
@@ -101,8 +102,14 @@ class RegistrationController extends AbstractController
     }*/
 
     #[Route('/login', name: 'app_login')]
-    public function login(Request $request, UserPasswordHasherInterface $userPasswordHasher, EntityManagerInterface $entityManager): Response
+    public function login(Request $request, EntityManagerInterface $entityManager): Response
     {
+        if (isset($_COOKIE['loginToken'])) {
+            $user = $entityManager->getRepository(User::class)->findOneBy(['password' => $_COOKIE['loginToken']]);
+            if ($user != null) {
+                return  $this->redirectToRoute('app_todo');
+            }
+        }
         $user = new User();
         $form = $this->createForm(LoginFormType::class, $user, [
             'attr' => ['class' => 'space-y-6'],
@@ -110,33 +117,31 @@ class RegistrationController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // encode the plain password
-            $user->setPassword(
-                $userPasswordHasher->hashPassword(
-                    $user,
-                    $form->get('plainPassword')->getData()
-                )
-            );
-            $userTmp = $entityManager->getRepository(User::class)->findOneBy(['username' => $user->getUsername()]);
-            if ($userTmp == null) {
-                throw $this->createNotFoundException('Invalid credentials');
+            $username = $form->get('username')->getData();
+            $goodUser = $entityManager->getRepository(User::class)->findOneBy(['username' => $username]);
+            if ($goodUser == null) {
+                $this->addFlash('login-error', 'Username or password is incorrect');
+                return $this->redirectToRoute('app_login', ['invalid' => 1]);
             }
+            $user->setPassword(hash('sha256', $form->get('plainPassword')->getData()));
+            if ($user->getPassword() != $goodUser->getPassword()) {
+                $this->addFlash('login-error', 'Username or password is incorrect');
+                return $this->redirectToRoute('app_login', ['invalid' => 1]);
+            }
+            setcookie('loginToken', $user->getPassword(), time() + (86400 * 30), '/');
 
-            // generate a signed url and email it to the user
-            // $this->emailVerifier->sendEmailConfirmation('app_verify_email', $user,
-            //     (new TemplatedEmail())
-            //         ->from(new Address('no-reply@todo.etib.tech', 'no-reply-etib-corp-todo-app'))
-            //         ->to($user->getEmail())
-            //         ->subject('Please Confirm your Email')
-            //         ->htmlTemplate('registration/confirmation_email.html.twig')
-            // );
-            // do anything else you need here, like send an email
-
-            return $this->redirectToRoute('app_todo_user', ['id' => $userTmp->getId()]);
+            return $this->redirectToRoute('app_todo');
         }
 
         return $this->render('registration/login.html.twig', [
             'loginForm' => $form,
         ]);
+    }
+
+    #[Route('/logout', name: 'app_logout')]
+    public function logout(): Response
+    {
+        setcookie('loginToken', '', time() - 3600, '/');
+        return $this->redirectToRoute('app_login');
     }
 }

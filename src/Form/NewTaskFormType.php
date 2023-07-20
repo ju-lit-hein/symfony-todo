@@ -46,7 +46,7 @@ class NewTaskFormType extends AbstractType
                 ],
                 'attr' => [
                     'placeholder' => 'Due Date',
-                    'class' => 'w-full rounded-lg border-gray-200 p-3 text-sm',
+                    'class' => 'w-full rounded-lg border-gray-200 p-3 text-sm cursor-pointer',
                 ],
             ])
             ->add('status', ChoiceType::class, [
