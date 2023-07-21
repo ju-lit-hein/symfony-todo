@@ -26,10 +26,10 @@ class TodoController extends AbstractController
         if (isset($_COOKIE['loginToken'])) {
             $user = $doctrine->getRepository(User::class)->findOneBy(['password' => $_COOKIE['loginToken']]);
             if ($user === null) {
-                $this->redirectToRoute('app_login');
+                return $this->redirectToRoute('app_login');
             }
         } else {
-            $this->redirectToRoute('app_login');
+            return $this->redirectToRoute('app_login');
         }
         $teams = $user->getTeams();
         $data = [];
@@ -107,6 +107,7 @@ class TodoController extends AbstractController
             $this->addFlash('new-user', 'Want to add a new user');
         }
         return $this->render('user/index.html.twig', [
+            'you' => $user,
             'teams' => $data,
             'form' => $form,
             'formNewUser' => $formNewUser,
@@ -224,10 +225,11 @@ class TodoController extends AbstractController
             $this->addFlash('new-user', 'Want to add a new user');
         }
         return $this->render('user/team.html.twig', [
+            'you' => $user,
             'users' => $newUsers,
             'form' => $form,
             'formNewUser' => $formNewUser,
-            'team' => $teamArray = [
+            'team' => [
                 'id' => $team->getId(),
                 'name' => $team->getName(),
                 'created_by' => $team->getCreatedBy()->getUsername(),
@@ -240,11 +242,22 @@ class TodoController extends AbstractController
     #[Route('/team/{id}/delete', name: 'app_todo_team_user_delete')]
     public function teamUserDelete(Request $request, ManagerRegistry $doctrine, string $id): Response
     {
+        if (isset($_COOKIE['loginToken'])) {
+            $user = $doctrine->getRepository(User::class)->findOneBy(['password' => $_COOKIE['loginToken']]);
+            if ($user === null) {
+                return $this->redirectToRoute('app_login');
+            }
+        } else {
+            return $this->redirectToRoute('app_login');
+        }
         $teamId = $request->query->get('id');
         $from = $request->query->get('from');
         $team = $doctrine->getRepository(Team::class)->find($teamId);
         if ($team === null) {
             throw $this->createNotFoundException('Team not found');
+        }
+        if ($team->getCreatedBy()->getUsername() != $user->getUsername()) {
+            throw $this->createAccessDeniedException('You must be the creator of the team to delete a user');
         }
         $user = $doctrine->getRepository(User::class)->find($id);
         if ($user === null) {
@@ -261,10 +274,10 @@ class TodoController extends AbstractController
         if (isset($_COOKIE['loginToken'])) {
             $user = $doctrine->getRepository(User::class)->findOneBy(['password' => $_COOKIE['loginToken']]);
             if ($user === null) {
-                $this->redirectToRoute('app_login');
+                return $this->redirectToRoute('app_login');
             }
         } else {
-            $this->redirectToRoute('app_login');
+            return $this->redirectToRoute('app_login');
         }
         $data = [
             'id' => $user->getId(),
@@ -284,10 +297,10 @@ class TodoController extends AbstractController
         if (isset($_COOKIE['loginToken'])) {
             $user = $doctrine->getRepository(User::class)->findOneBy(['password' => $_COOKIE['loginToken']]);
             if ($user === null) {
-                $this->redirectToRoute('app_login');
+                return $this->redirectToRoute('app_login');
             }
         } else {
-            $this->redirectToRoute('app_login');
+            return $this->redirectToRoute('app_login');
         }
         $user = $doctrine->getRepository(User::class)->find($id);
         if ($user === null) {
@@ -311,10 +324,10 @@ class TodoController extends AbstractController
         if (isset($_COOKIE['loginToken'])) {
             $user = $doctrine->getRepository(User::class)->findOneBy(['password' => $_COOKIE['loginToken']]);
             if ($user === null) {
-                $this->redirectToRoute('app_login');
+                return $this->redirectToRoute('app_login');
             }
         } else {
-            $this->redirectToRoute('app_login');
+            return $this->redirectToRoute('app_login');
         }
         $form = $this->createFormBuilder($user)
             ->add('username', null, ['required' => false])
@@ -337,10 +350,10 @@ class TodoController extends AbstractController
         if (isset($_COOKIE['loginToken'])) {
             $user = $doctrine->getRepository(User::class)->findOneBy(['password' => $_COOKIE['loginToken']]);
             if ($user === null) {
-                $this->redirectToRoute('app_login');
+                return $this->redirectToRoute('app_login');
             }
         } else {
-            $this->redirectToRoute('app_login');
+            return $this->redirectToRoute('app_login');
         }
         $form = $this->createForm(UserDeletionConfirmFormType::class);
         $form->handleRequest($request);
@@ -360,10 +373,10 @@ class TodoController extends AbstractController
         if (isset($_COOKIE['loginToken'])) {
             $user = $doctrine->getRepository(User::class)->findOneBy(['password' => $_COOKIE['loginToken']]);
             if ($user === null) {
-                $this->redirectToRoute('app_login');
+                return $this->redirectToRoute('app_login');
             }
         } else {
-            $this->redirectToRoute('app_login');
+            return $this->redirectToRoute('app_login');
         }
         $tasks = $user->getTasks();
         $data = [];
@@ -386,10 +399,10 @@ class TodoController extends AbstractController
         if (isset($_COOKIE['loginToken'])) {
             $user = $doctrine->getRepository(User::class)->findOneBy(['password' => $_COOKIE['loginToken']]);
             if ($user === null) {
-                $this->redirectToRoute('app_login');
+                return $this->redirectToRoute('app_login');
             }
         } else {
-            $this->redirectToRoute('app_login');
+            return $this->redirectToRoute('app_login');
         }
         $task = $doctrine->getRepository(Task::class)->find($task_id);
         if ($user === null || $task === null || $task->getUser() !== $user) {
@@ -412,10 +425,10 @@ class TodoController extends AbstractController
         if (isset($_COOKIE['loginToken'])) {
             $user = $doctrine->getRepository(User::class)->findOneBy(['password' => $_COOKIE['loginToken']]);
             if ($user === null) {
-                $this->redirectToRoute('app_login');
+                return $this->redirectToRoute('app_login');
             }
         } else {
-            $this->redirectToRoute('app_login');
+            return $this->redirectToRoute('app_login');
         }
         $id = $request->query->get('id');
         $user = $doctrine->getRepository(User::class)->find($id);
@@ -510,5 +523,11 @@ class TodoController extends AbstractController
         $doctrine->getManager()->remove($task);
         $doctrine->getManager()->flush();
         return $this->redirectToRoute($from, ['team' => $teamId]);
+    }
+
+    #[Route('/terms', name: 'app_todo_terms')]
+    public function terms(): Response
+    {
+        return $this->render('terms/terms.html.twig');
     }
 }

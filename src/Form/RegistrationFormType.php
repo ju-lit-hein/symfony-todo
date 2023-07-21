@@ -41,6 +41,9 @@ class RegistrationFormType extends AbstractType
                 'label_attr' => [
                     'class' => 'text-sm font-medium leading-6 text-white'
                 ],
+                'attr' => [
+                    'class' => 'mt-1'
+                ],
                 'constraints' => [
                     new IsTrue([
                         'message' => 'You should agree to our terms.',
