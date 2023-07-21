@@ -33,6 +33,9 @@ class Task
     #[ORM\JoinColumn(nullable: false)]
     private ?User $user = null;
 
+    #[ORM\Column(nullable: false)]
+    private ?int $team_id = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -106,6 +109,18 @@ class Task
     public function setUser(?User $user): static
     {
         $this->user = $user;
+
+        return $this;
+    }
+
+    public function getTeamId(): ?int
+    {
+        return $this->team_id;
+    }
+
+    public function setTeamId(int $team_id): static
+    {
+        $this->team_id = $team_id;
 
         return $this;
     }

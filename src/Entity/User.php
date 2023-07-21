@@ -29,6 +29,9 @@ class User implements PasswordAuthenticatedUserInterface, UserInterface
     #[ORM\Column(length: 255, unique: true)]
     private ?string $username = null;
 
+    #[ORM\Column(length: 1000, nullable: true)]
+    private ?string $imgPath = null;
+
     #[ORM\Column(type: Types::DATE_MUTABLE)]
     private ?\DateTimeInterface $creation_date = null;
 
@@ -44,9 +47,17 @@ class User implements PasswordAuthenticatedUserInterface, UserInterface
     #[ORM\Column(type: 'boolean')]
     private $isVerified = false;
 
+    #[ORM\OneToMany(mappedBy: 'createdBy', targetEntity: Team::class)]
+    private Collection $createdTeams;
+
+    #[ORM\ManyToMany(targetEntity: Team::class, mappedBy: 'users')]
+    private Collection $teams;
+
     public function __construct()
     {
         $this->tasks = new ArrayCollection();
+        $this->createdTeams = new ArrayCollection();
+        $this->teams = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -86,6 +97,18 @@ class User implements PasswordAuthenticatedUserInterface, UserInterface
     public function setUsername(string $username): static
     {
         $this->username = $username;
+
+        return $this;
+    }
+
+    public function getImgPath(): ?string
+    {
+        return $this->imgPath;
+    }
+
+    public function setImgPath(string $imgPath): static
+    {
+        $this->imgPath = $imgPath;
 
         return $this;
     }
@@ -178,6 +201,63 @@ class User implements PasswordAuthenticatedUserInterface, UserInterface
     public function setIsVerified(bool $isVerified): static
     {
         $this->isVerified = $isVerified;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Team>
+     */
+    public function getCreatedTeams(): Collection
+    {
+        return $this->createdTeams;
+    }
+
+    public function addCreatedTeam(Team $createdTeam): static
+    {
+        if (!$this->createdTeams->contains($createdTeam)) {
+            $this->createdTeams->add($createdTeam);
+            $createdTeam->setCreatedBy($this);
+        }
+
+        return $this;
+    }
+
+    public function removeCreatedTeam(Team $createdTeam): static
+    {
+        if ($this->createdTeams->removeElement($createdTeam)) {
+            // set the owning side to null (unless already changed)
+            if ($createdTeam->getCreatedBy() === $this) {
+                $createdTeam->setCreatedBy(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Team>
+     */
+    public function getTeams(): Collection
+    {
+        return $this->teams;
+    }
+
+    public function addTeam(Team $team): static
+    {
+        if (!$this->teams->contains($team)) {
+            $this->teams->add($team);
+            $team->addUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeTeam(Team $team): static
+    {
+        if ($this->teams->removeElement($team)) {
+            $team->removeUser($this);
+        }
 
         return $this;
     }

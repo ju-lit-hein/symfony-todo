@@ -13,6 +13,7 @@ use App\Form\NewTaskFormType;
 
 use App\Entity\User;
 use App\Entity\Task;
+use App\Entity\Team;
 
 class TodoController extends AbstractController
 {
@@ -22,13 +23,47 @@ class TodoController extends AbstractController
         if (isset($_COOKIE['loginToken'])) {
             $user = $doctrine->getRepository(User::class)->findOneBy(['password' => $_COOKIE['loginToken']]);
             if ($user === null) {
+                $this->redirectToRoute('app_login');
+            }
+        } else {
+            $this->redirectToRoute('app_login');
+        }
+        $teams = $user->getTeams();
+        $data = [];
+        foreach ($teams as $team) {
+            $data[] = [
+                'id' => $team->getId(),
+                'name' => $team->getName(),
+                'created_by' => $team->getCreatedBy()->getUsername(),
+                'creation_date' => $team->getCreationDate()->format('M-d-Y'),
+            ];
+            $users = $team->getUsers();
+        }
+        $isNewTeam = $request->query->get('new');
+        //form for creating a new team
+        // same things as in the newTask form
+        return $this->render('user/index.html.twig', [
+            'teams' => $data,
+        ]);
+    }
+
+    #[Route('/team', name: 'app_todo_team')]
+    public function teamById(ManagerRegistry $doctrine, Request $request): Response
+    {
+        if (isset($_COOKIE['loginToken'])) {
+            $user = $doctrine->getRepository(User::class)->findOneBy(['password' => $_COOKIE['loginToken']]);
+            if ($user === null) {
                 return $this->redirectToRoute('app_login');
             }
         } else {
             return $this->redirectToRoute('app_login');
         }
-        // show the current user teams
-        $users = $doctrine->getRepository(User::class)->findAll();
+        $teamId = $request->query->get('team');
+        $team = $doctrine->getRepository(Team::class)->find($teamId);
+        if ($team === null) {
+            throw $this->createNotFoundException('Team not found');
+        }
+        $users = $team->getUsers();
         $data = [];
         foreach ($users as $user) {
             $tasks = $doctrine->getRepository(Task::class)->findBy(['user' => $user]);
@@ -79,7 +114,7 @@ class TodoController extends AbstractController
             }
             $this->addFlash('new-task', 'Want to create a new task');
         }
-        return $this->render('user/index.html.twig', [
+        return $this->render('user/team.html.twig', [
             'users' => $data,
             'form' => $form,
         ]);
