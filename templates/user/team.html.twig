@@ -60,15 +60,55 @@
             </div>
         </section>
     {% endfor %}
+    {% for new in app.flashes('new-user') %}
+        <section class="h-screen w-screen flex items-stretch bg-black absolute z-10 xl:bg-opacity-60" id="alert">
+            <script>
+                document.getElementById("body").classList.add("overflow-hidden");
+            </script>
+            <div class="self-center mx-auto max-w-screen-xl px-4 py-16 sm:px-6 lg:px-8">
+                <button class="translate-y-7 text-red-600 transition hover:text-gray-600" onclick="document.getElementById('alert').remove();document.getElementById('body').classList.remove('overflow-hidden');">
+                    <span class="sr-only">Dismiss popup</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+                <div class="grid grid-cols-1 gap-x-16 gap-y-8 lg:grid-cols-5">
+                    <div class="rounded-lg bg-gray-800 p-8 shadow-lg lg:col-span-3 lg:p-12">
+                        {{ form_start(formNewUser, {
+                            'attr': {
+                                'class': 'space-y-4'
+                            }
+                        }) }}
+                        <div class="grid grid-cols-1">
+                            <div class="gap-4 sm:grid-cols-2">
+                                <div class="left-50 right-50">
+                                    {{ form_row(formNewUser.username) }}
+                                </div>
+                            </div>
+                            <div class="mt-4 left-50 right-50">
+                                <button type="submit" class="inline-block w-full rounded-lg bg-green-400 px-5 py-3 font-medium text-black sm:w-auto">
+                                    Add user
+                                </button>
+                            </div>
+                        </div>
+                        {{ form_end(formNewUser) }}
+                    </div>
+                </div>
+            </div>
+        </section>
+    {% endfor %}
+    <div class="m-6 h-10 w-32 border rounded-lg border-slate-300 bg-gray-800 cursor-pointer" onclick="document.location.href='{{ path("app_todo") }}'">
+        <p class="text-white mx-5 my-2">Go Home!</p>
+    </div>
     <ul class="my-10 relative z-0">
         <div class="px-6 grid xl:grid-cols-4 gap-4 text-slate-300 md:grid-cols-3 sm:grid-cols-2">
             {% for user in users %}
                 <article class="rounded-xl border border-gray-700 bg-gray-800 p-4">
-                    <div class="flex items-center gap-4">
+                    <div class="relative flex items-center gap-4">
                         <a href="/user/{{ user.id }}">
                             <img
                             alt="Developer"
-                            src="https://t4.ftcdn.net/jpg/00/64/67/63/360_F_64676383_LdbmhiNM6Ypzb3FM4PPuFP9rHe7ri8Ju.jpg"
+                            src="{{ asset('/build/images/' ~ user.img) }}"
                             class="md:h-16 md:w-16 h-10 w-10 rounded-full object-cover"
                             />
                         </a>
@@ -85,6 +125,26 @@
                                 </ul>
                             </div>
                         </div>
+                        {% if user.username != team.created_by %}
+                            <div class="grid grid-cols-4 absolute right-0">
+                                <label for="delete" class="relative col-start-4 col-end-4 lg:h-10 lg:w-10 m-3 cursor-pointer rounded-full bg-black shadow-sm h-7 w-7" title="Delete user from the team" onclick="window.location.href='/team/{{ user.id }}/delete?from=app_todo_team&id={{ team.id }}';">
+                                    <span class="sr-only">Delete</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="lg:h-8 lg:w-8 h-5 w-5 mt-1 ml-1">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/>
+                                    </svg>
+                                </label>
+                            </div>
+                        {% else %}
+                            <div class="grid grid-cols-4 absolute right-0">
+                                <label for="owner" class="relative col-start-4 col-end-4 lg:h-10 lg:w-10 m-3 rounded-full bg-transparent shadow-sm h-7 w-7" title="Owner">
+                                    <span class="sr-only">Team Creator</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512" fill="yellow" stroke-width="1.5" stroke="#facc15" class="lg:h-8 lg:w-8 h-5 w-5 mt-1 ml-1">
+                                        <!--! Font Awesome Free 6.1.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. -->
+                                        <path d="M576 136c0 22.09-17.91 40-40 40c-.248 0-.4551-.1266-.7031-.1305l-50.52 277.9C482 468.9 468.8 480 453.3 480H122.7c-15.46 0-28.72-11.06-31.48-26.27L40.71 175.9C40.46 175.9 40.25 176 39.1 176c-22.09 0-40-17.91-40-40S17.91 96 39.1 96s40 17.91 40 40c0 8.998-3.521 16.89-8.537 23.57l89.63 71.7c15.91 12.73 39.5 7.544 48.61-10.68l57.6-115.2C255.1 98.34 247.1 86.34 247.1 72C247.1 49.91 265.9 32 288 32s39.1 17.91 39.1 40c0 14.34-7.963 26.34-19.3 33.4l57.6 115.2c9.111 18.22 32.71 23.4 48.61 10.68l89.63-71.7C499.5 152.9 496 144.1 496 136C496 113.9 513.9 96 536 96S576 113.9 576 136z"/>
+                                    </svg>
+                                </label>
+                            </div>
+                        {% endif %}
                     </div>
                     <ul class="mt-4 space-y-2">
                         {% for task in user.tasks %}
@@ -97,7 +157,7 @@
                             {% else %}
                                 {% set color = 'border-gray-700' %}
                             {% endif %}
-                            <li class="h-50 rounded-lg border {{ color }} p-4 hover:border-indigo-600 group grid grid-cols-2">
+                            <li class="h-50 rounded-lg border {{ color }} p-4 hover:border-indigo-600 group grid grid-cols-2" ondrag="alert('drag');">
                                 <a href="/task/{{ task.id }}" class="block ">
                                     <strong class="font-medium text-white group-hover:text-indigo-600">{{ task.name }}</strong>
                                     <p class="mt-1 text-xs font-medium text-gray-300 truncate w-1/2">{{ task.description }}</p>
@@ -105,26 +165,26 @@
                                     <p class="mt-1 text-xs font-medium text-gray-300"> Status: {{ task.status }}</p>
                                 </a>
                                 <div class="r-0 grid lg:grid-cols-4 grid-cols-3">
-                                    <label for="delete" class="block order-last lg:col-auto col-start-2 col-end-3 lg:h-10 lg:w-10 m-3 cursor-pointer rounded-full bg-black shadow-sm h-7 w-7" onclick="window.location.href='/task/{{ task.id }}/delete?&from=app_todo';">
+                                    <label for="delete" class="block order-last lg:col-auto col-start-2 col-end-3 lg:h-10 lg:w-10 m-3 cursor-pointer rounded-full bg-black shadow-sm h-7 w-7" onclick="window.location.href='/task/{{ task.id }}/delete?from=app_todo_team&id={{ user.team_id }}';">
                                         <span class="sr-only">Delete</span>
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="lg:h-8 lg:w-8 h-5 w-5 mt-1 ml-1">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/>
                                         </svg>
                                     </label>
-                                    <label for="red" class="block lg:h-10 lg:w-10 m-3 cursor-pointer rounded-full bg-red-600 shadow-sm h-7 w-7" onclick="window.location.href='/task/{{ task.id }}/edit?status=Not Started&from=app_todo';">
+                                    <label for="red" class="block lg:h-10 lg:w-10 m-3 cursor-pointer rounded-full bg-red-600 shadow-sm h-7 w-7" onclick="window.location.href='/task/{{ task.id }}/edit?status=Not Started&from=app_todo_team&id={{ user.team_id }}';">
                                         <span class="sr-only">Not Started</span>
                                     </label>
-                                    <label for="yellow" class="block lg:h-10 lg:w-10 m-3 cursor-pointer rounded-full bg-yellow-600 shadow-sm h-7 w-7" onclick="window.location.href='/task/{{ task.id }}/edit?status=In Progress&from=app_todo';">
+                                    <label for="yellow" class="block lg:h-10 lg:w-10 m-3 cursor-pointer rounded-full bg-yellow-600 shadow-sm h-7 w-7" onclick="window.location.href='/task/{{ task.id }}/edit?status=In Progress&from=app_todo_team&id={{ user.team_id }}';">
                                         <span class="sr-only">In Progress</span>
                                     </label>
-                                    <label for="green" class="block lg:h-10 lg:w-10 m-3 cursor-pointer rounded-full bg-green-600 shadow-sm h-7 w-7" onclick="window.location.href='/task/{{ task.id }}/edit?status=Completed&from=app_todo';">
+                                    <label for="green" class="block lg:h-10 lg:w-10 m-3 cursor-pointer rounded-full bg-green-600 shadow-sm h-7 w-7" onclick="window.location.href='/task/{{ task.id }}/edit?status=Completed&from=app_todo_team&id={{ user.team_id }}';">
                                         <span class="sr-only">Completed</span>
                                     </label>
                                 </div>
                             </li>
                         {% endfor %}
                         <li>
-                            <a href="/?new=1&id={{ user.id }}" class="block h-50 rounded-lg border hover:border-indigo-600 p-4 border-gray-700 group">
+                            <a href="/team?new=1&id={{ user.id }}&team={{ user.team_id }}" class="block h-50 rounded-lg border hover:border-indigo-600 p-4 border-gray-700 group">
                                 <strong class="font-medium text-white group-hover:text-indigo-600">Add a new task</strong>
                                 <p class="mt-1 text-xs font-medium text-gray-300 group-hover:text-indigo-600">Create a new task for {{ user.username }}</p>
                             </a>
@@ -132,6 +192,14 @@
                     </ul>
                 </article>
             {% endfor %}
+            <div class="space-y-2">
+                <div class="h-50 rounded-lg border border-gray-700 p-4 hover:border-indigo-600 group cursor-pointer" onclick="document.location.href='/team?team={{ team.id }}&newUser=1'">
+                    <p class="block">
+                        <strong class="font-medium text-white group-hover:text-indigo-600">Add a user</strong>
+                        <p class="mt-1 text-xs font-medium text-gray-300">Add user to {{ team.name  }}</p>
+                    </p>
+                </div>
+            </div>
         </div>
     </ul>
 {% endblock %}
